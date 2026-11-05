@@ -23,6 +23,11 @@ async def create_service(data: ServiceCreate)->ServiceRead:
     services[service.id]=service
     return service
 
+@app.get("/services")
+async def list_services()->list[ServiceRead]:
+    return list(services.values())
+
+
 @app.get("/health")
 def health():
     return {"status":"ok"}
