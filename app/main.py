@@ -27,6 +27,18 @@ async def create_service(data: ServiceCreate)->ServiceRead:
 async def list_services()->list[ServiceRead]:
     return list(services.values())
 
+@app.get("/services/{service_id}")
+async def get_service(service_id: int)->ServiceRead:
+    service=services.get(service_id)
+    if service is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Услуга не найдена")
+    return service
+
+
+
+
+
+
 
 @app.get("/health")
 def health():
