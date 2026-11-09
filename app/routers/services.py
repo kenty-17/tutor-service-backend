@@ -17,15 +17,15 @@ def get_service_or_404(service_id: int) -> ServiceRead:
 
 def ensure_name_is_free(name: str, exclude_id: int | None = None) -> None:
     for other in services.values():
-        if other.id != exclude_id and other.name == name:
+        if other.service_id != exclude_id and other.name == name:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Услуга уже существует")
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_service(data: ServiceCreate) -> ServiceRead:
     ensure_name_is_free(data.name)
-    service = ServiceRead(id=next(service_ids), name=data.name)
-    services[service.id] = service
+    service = ServiceRead(service_id=next(service_ids), name=data.name)
+    services[service.service_id] = service
     return service
 
 
