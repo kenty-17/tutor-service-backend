@@ -60,9 +60,29 @@ def get_service(service_id: int) -> ServiceRead:
 
 
 @router.patch("/{service_id}")
-async def update_service(service_id: int, data: ServiceUpdate) -> ServiceRead:
-    service = get_service_or_404(service_id)
-    if data.name is not None:
-        ensure_name_is_free(data.name, exclude_id=service_id)
-        service.name = data.name
-    return service
+def update_service(service_id: int, data: ServiceUpdate) -> ServiceRead:
+    with get_connection() as conn:
+        find_sql = "select service_id, name from services where service_id = %s"
+        find_params = (service_id,)
+        find_result = conn.execute(find_sql, find_params)
+        service = find_result.fetchone()
+
+        if service is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Услуга не найдена")
+
+        if data.name is None:
+            return service
+        
+        check_sql = "select service_id from services where name = %s and service_id <> %s"
+        check_params = (data.name, service_id)
+        check_result = conn.execute(check_sql, check_params)
+        existing = check_result.fetchone()
+
+        if existing is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Услуга уже существует")
+        
+        update_sql = "update services set name = %s where service_id = %s returning service_id, name"
+        update_params = (data.name, service_id)
+        update_result = conn.execute(update_sql, update_params)
+        row = update_result.fetchone()
+    return row
