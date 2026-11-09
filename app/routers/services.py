@@ -23,11 +23,21 @@ def ensure_name_is_free(name: str, exclude_id: int | None = None) -> None:
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def create_service(data: ServiceCreate) -> ServiceRead:
-    ensure_name_is_free(data.name)
-    service = ServiceRead(service_id=next(service_ids), name=data.name)
-    services[service.service_id] = service
-    return service
+def create_service(data: ServiceCreate) -> ServiceRead:
+    with get_connection() as conn:
+        check_sql = "select service_id from services where name = %s"
+        check_params = (data.name,)
+        check_result = conn.execute(check_sql, check_params)
+        existing = check_result.fetchone()
+
+        if existing is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Услуга уже существует")
+
+        insert_sql = "insert into services (name) values (%s) returning service_id, name"
+        insert_params = (data.name,)
+        insert_result = conn.execute(insert_sql, insert_params)
+        row = insert_result.fetchone()
+    return row
 
 
 @router.get("")
