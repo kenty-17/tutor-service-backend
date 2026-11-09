@@ -8,6 +8,6 @@ app.include_router(services.router)
 @app.get("/health")
 def health():
     with get_connection() as conn:
-        conn.execute("SELECT 1")
+        conn.execute("select 1")
     return {"status":"ok"}
 

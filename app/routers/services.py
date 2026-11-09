@@ -1,6 +1,7 @@
 from itertools import count
 from fastapi import APIRouter, HTTPException, status
 from app.schemas import ServiceCreate, ServiceRead, ServiceUpdate
+from app.database import get_connection
 
 router = APIRouter(prefix="/services", tags=["Услуги"])
 
@@ -30,13 +31,22 @@ async def create_service(data: ServiceCreate) -> ServiceRead:
 
 
 @router.get("")
-async def list_services() -> list[ServiceRead]:
-    return list(services.values())
+def list_services() -> list[ServiceRead]:
+    with get_connection() as conn:
+        rows=conn.execute("select service_id, name from services order by service_id").fetchall()
+    return rows
 
 
 @router.get("/{service_id}")
-async def get_service(service_id: int) -> ServiceRead:
-    return get_service_or_404(service_id)
+def get_service(service_id: int) -> ServiceRead:
+    with get_connection() as conn:
+        sql = "select service_id, name from services where service_id = %s"
+        params = (service_id,)
+        result = conn.execute(sql, params)
+        row = result.fetchone()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Услуга не найдена")
+    return row
 
 
 @router.patch("/{service_id}")
