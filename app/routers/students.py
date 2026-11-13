@@ -6,7 +6,6 @@ router = APIRouter(prefix="/students", tags=["Ученики"])
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_student(data: StudentCreate) -> StudentRead:
-    
     if data.parent_id is not None and data.parent is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -21,6 +20,7 @@ def create_student(data: StudentCreate) -> StudentRead:
 
         if service is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Услуга не найдена")
+        parent_id = data.parent_id
 
         if data.parent_id is not None:
             parent_sql = "select parent_id from parents where parent_id = %s"
@@ -31,8 +31,15 @@ def create_student(data: StudentCreate) -> StudentRead:
             if parent is None:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Родитель не найден")
 
-        insert_sql = "insert into students (name, contact, parent_id, service_id, cost_per_hour) values (%s, %s, %s, %s, %s) returning student_id, name, contact, parent_id, service_id, cost_per_hour, is_active"
-        insert_params = (data.name, data.contact, data.parent_id, data.service_id, data.cost_per_hour)
+        elif data.parent is not None:
+            new_parent_sql = "insert into parents (name, contact) values (%s, %s) returning parent_id"
+            new_parent_params = (data.parent.name, data.parent.contact)
+            new_parent_result = conn.execute(new_parent_sql, new_parent_params)
+            new_parent = new_parent_result.fetchone()
+            parent_id = new_parent["parent_id"]
+
+        insert_sql = "insert into students (name, contact, parent_id, service_id, cost_per_hour) values (%s, %s, %s, %s, %s) returning *"
+        insert_params = (data.name, data.contact, parent_id, data.service_id, data.cost_per_hour)
         insert_result = conn.execute(insert_sql, insert_params)
         row = insert_result.fetchone()
     return row
