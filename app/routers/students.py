@@ -43,3 +43,17 @@ def create_student(data: StudentCreate) -> StudentRead:
         insert_result = conn.execute(insert_sql, insert_params)
         row = insert_result.fetchone()
     return row
+
+@router.get("")
+def list_students(is_active: bool | None = None) -> list[StudentRead]:
+    with get_connection() as conn:
+        if is_active is None:
+            sql = "select * from students order by student_id"
+            params = ()
+        else:
+            sql = "select * from students where is_active = %s order by student_id"
+            params = (is_active,)
+
+        result = conn.execute(sql, params)
+        rows = result.fetchall()
+    return rows
