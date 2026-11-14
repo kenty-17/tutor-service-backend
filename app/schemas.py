@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, AwareDatetime
 from decimal import Decimal
+from datetime import datetime
 
 class ServiceCreate(BaseModel):
     name: str=Field(min_length=1, max_length=100)
@@ -50,3 +51,15 @@ class StudentCard(BaseModel):
     parent_id: int | None
     parent_name: str | None
     parent_contact: str | None
+
+class LessonCreate(BaseModel):
+    student_id:int
+    start_at: AwareDatetime
+    duration_min: int = Field(ge=60, le=120)
+
+class LessonRead(BaseModel):
+    lesson_id: int
+    student_id: int
+    start_at: datetime
+    duration_min: int
+    status: str | None
