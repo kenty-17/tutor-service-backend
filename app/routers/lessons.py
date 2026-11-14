@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 from app.database import get_connection
 from app.schemas import LessonCreate, LessonRead
+from datetime import timedelta
 
 router = APIRouter(prefix="/lessons", tags=["Занятия"])
 
@@ -17,6 +18,28 @@ def create_lesson(data: LessonCreate) -> LessonRead:
 
         if not student["is_active"]:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ученик в архиве")
+
+        new_start = data.start_at
+        new_end = data.start_at + timedelta(minutes=data.duration_min)
+
+        overlap_sql = """
+            select lesson_id, start_at, duration_min
+            from lessons
+            where start_at < %s
+              and %s < start_at + duration_min * interval '1 minute'
+              and status is distinct from 'Отменено'
+              and status is distinct from 'Перенесено'
+            limit 1
+        """
+        overlap_params = (new_end, new_start)
+        overlap_result = conn.execute(overlap_sql, overlap_params)
+        overlap = overlap_result.fetchone()
+
+        if overlap is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Время пересекается с занятием {overlap['lesson_id']}"
+            )
 
         insert_sql = "insert into lessons (student_id, start_at, duration_min) values (%s, %s, %s) returning *"
         insert_params = (data.student_id, data.start_at, data.duration_min)

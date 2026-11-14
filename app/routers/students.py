@@ -9,7 +9,7 @@ def create_student(data: StudentCreate) -> StudentRead:
     if data.parent_id is not None and data.parent is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Укажите либо parent_id, либо parent, но не и то, и другое",
+            detail="Укажите либо parent_id, либо parent, но не и то, и другое"
         )
 
     with get_connection() as conn:
