@@ -38,3 +38,15 @@ class StudentRead(BaseModel):
     service_id: int
     cost_per_hour: Decimal
     is_active: bool
+
+class StudentCard(BaseModel):
+    student_id: int
+    name: str
+    contact: str | None
+    is_active: bool
+    cost_per_hour: Decimal
+    service_id: int
+    service_name: str
+    parent_id: int | None
+    parent_name: str | None
+    parent_contact: str | None

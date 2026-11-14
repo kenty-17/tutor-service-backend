@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 from app.database import get_connection
-from app.schemas import StudentCreate, StudentRead
+from app.schemas import StudentCard, StudentCreate, StudentRead
 
 router = APIRouter(prefix="/students", tags=["Ученики"])
 
@@ -57,3 +57,31 @@ def list_students(is_active: bool | None = None) -> list[StudentRead]:
         result = conn.execute(sql, params)
         rows = result.fetchall()
     return rows
+
+@router.get("/{student_id}")
+def get_student(student_id: int) -> StudentCard:
+    with get_connection() as conn:
+        sql = """
+            select
+                students.student_id,
+                students.name,
+                students.contact,
+                students.is_active,
+                students.cost_per_hour,
+                services.service_id,
+                services.name as service_name,
+                parents.parent_id,
+                parents.name as parent_name,
+                parents.contact as parent_contact
+            from students
+            join services on services.service_id = students.service_id
+            left join parents on parents.parent_id = students.parent_id
+            where students.student_id = %s
+        """
+        params = (student_id,)
+        result = conn.execute(sql, params)
+        row = result.fetchone()
+
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ученик не найден")
+    return row
