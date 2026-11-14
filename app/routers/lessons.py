@@ -61,3 +61,15 @@ def list_lessons(
         result = conn.execute(sql, params)
         rows = result.fetchall()
     return rows
+
+@router.get("/{lesson_id}")
+def get_lesson(lesson_id: int) -> LessonRead:
+    with get_connection() as conn:
+        sql = "select * from lessons where lesson_id = %s"
+        params = (lesson_id,)
+        result = conn.execute(sql, params)
+        row = result.fetchone()
+
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail= "Занятие не найдено")
+    return row
