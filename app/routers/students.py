@@ -141,3 +141,15 @@ def update_student(student_id: int, data: StudentUpdate) -> StudentRead:
         update_result = conn.execute(update_sql, update_params)
         row = update_result.fetchone()
     return row
+
+@router.post("/{student_id}/archive")
+def archive_student(student_id: int) -> StudentRead:
+    with get_connection() as conn:
+        sql = "update students set is_active = false where student_id = %s returning *"
+        params = (student_id,)
+        result = conn.execute(sql, params)
+        row = result.fetchone()
+
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ученик не найден")
+    return row
