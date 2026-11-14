@@ -1,0 +1,1 @@
+alter database tutor_service set timezone to 'Europe/Moscow';
