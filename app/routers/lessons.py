@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Query
 from app.database import get_connection
 from app.schemas import LessonCreate, LessonRead
 from datetime import timedelta
+from pydantic import AwareDatetime
 
 router = APIRouter(prefix="/lessons", tags=["Занятия"])
 
@@ -46,3 +47,17 @@ def create_lesson(data: LessonCreate) -> LessonRead:
         insert_result = conn.execute(insert_sql, insert_params)
         row = insert_result.fetchone()
     return row
+
+@router.get("")
+def list_lessons(
+    date_from: AwareDatetime = Query(alias="from"),
+    date_to: AwareDatetime = Query(alias="to")) -> list[LessonRead]:
+    if date_from >= date_to:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Начало периода должно быть раньше конца")
+
+    with get_connection() as conn:
+        sql = "select * from lessons where start_at >= %s and start_at < %s and status is null order by start_at"
+        params = (date_from, date_to)
+        result = conn.execute(sql, params)
+        rows = result.fetchall()
+    return rows
