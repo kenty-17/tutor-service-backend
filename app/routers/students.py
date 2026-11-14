@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 from app.database import get_connection
-from app.schemas import StudentCard, StudentCreate, StudentRead
+from app.schemas import StudentCard, StudentCreate, StudentRead, StudentUpdate
 
 router = APIRouter(prefix="/students", tags=["Ученики"])
 
@@ -84,4 +84,60 @@ def get_student(student_id: int) -> StudentCard:
 
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ученик не найден")
+    return row
+
+@router.patch("/{student_id}")
+def update_student(student_id: int, data: StudentUpdate) -> StudentRead:
+    with get_connection() as conn:
+        find_sql = "select * from students where student_id = %s"
+        find_params = (student_id,)
+        find_result = conn.execute(find_sql, find_params)
+        current = find_result.fetchone()
+
+        if current is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ученик не найден")
+
+        name = current["name"]
+        if data.name is not None:
+            name = data.name
+
+        contact = current["contact"]
+        if data.contact is not None:
+            contact = data.contact
+
+        service_id = current["service_id"]
+        if data.service_id is not None:
+            service_id = data.service_id
+
+        cost_per_hour = current["cost_per_hour"]
+        if data.cost_per_hour is not None:
+            cost_per_hour = data.cost_per_hour
+
+        parent_id = current["parent_id"]
+        if data.parent_id is not None:
+            parent_id = data.parent_id
+
+        if data.service_id is not None:
+            service_sql = "select service_id from services where service_id = %s"
+            service_params = (data.service_id,)
+            service_result = conn.execute(service_sql, service_params)
+            if service_result.fetchone() is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Услуга не найдена")
+
+        if data.parent_id is not None:
+            parent_sql = "select parent_id from parents where parent_id = %s"
+            parent_params = (data.parent_id,)
+            parent_result = conn.execute(parent_sql, parent_params)
+            if parent_result.fetchone() is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Родитель не найден")
+
+        update_sql = """
+            update students
+            set name = %s, contact = %s, service_id = %s, cost_per_hour = %s, parent_id = %s
+            where student_id = %s
+            returning *
+        """
+        update_params = (name, contact, service_id, cost_per_hour, parent_id, student_id)
+        update_result = conn.execute(update_sql, update_params)
+        row = update_result.fetchone()
     return row
